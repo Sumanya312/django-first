@@ -4,9 +4,15 @@ from django.http import HttpResponse, HttpResponseRedirect
 from .models import shorten
 from .forms import bitlyForm, editBitly
 from .utils import create_shortcode
+#for dynamic url
+from django.urls import reverse
+#for login feature
+from django.contrib.auth.decorators import login_required
+#to get the domain name
+#fromdjango.contrib.sites.models import Site
 # Create your views here.
 def index(request):
-	objects = shorten.objects.all()
+	objects = shorten.objects.all()[::-1]
 	print(objects)
 
 	context = {'objs': objects}
@@ -22,7 +28,7 @@ def create(request):
 		instance.datewise = "{}"
 		instance.save()
 
-		return HttpResponseRedirect("http://127.0.0.1:8000/home/")
+		return HttpResponseRedirect(reverse("index"))
 
 	context = {"urlform": form}
 	return render(request, "create.html", context)
@@ -42,20 +48,22 @@ def goto(request, xyz=None):
 	return HttpResponseRedirect(qs.long_url)
 
 def update(request, pk=None):
-	qs = get_object_or_404(shorten, id=pk)
-	form = editBitly(request.POST or None, instance=qs)
+	if request.user.is_authenticated:
+		qs = get_object_or_404(shorten, id=pk)
+		form = editBitly(request.POST or None, instance=qs)
 
-	if form.is_valid():
-		form.save()
-		return HttpResponseRedirect("http://127.0.0.1:8000/home/") 
+		if form.is_valid():
+			form.save()
+			return HttpResponseRedirect(reverse("index"))
 
-	context = {'urlform': form}
-	return render(request, "create.html", context)
-
+		context = {'urlform': form}
+		return render(request, "create.html", context)
+	return HttpResponseRedirect(reverse("index"))
 def delete(request, pk=None):
-	qs = get_object_or_404(shorten, id=pk)
-	qs.delete()
-	return HttpResponseRedirect("http://127.0.0.1:8000/home/")
+	if request.user.is_authenticated:
+		qs = get_object_or_404(shorten, id=pk)
+		qs.delete()
+	return HttpResponseRedirect(reverse("index"))
 
 
 
